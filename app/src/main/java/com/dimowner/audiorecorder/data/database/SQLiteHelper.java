@@ -81,12 +81,43 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 
 			db.setTransactionSuccessful();
 			db.endTransaction();
+		} else if (oldVersion < 4 && newVersion == 4) { // Handles upgrade from any version < 4 to 4
+			db.beginTransaction();
+			// Check if columns exist before adding - defensive, though onUpgrade should handle specific oldVersion->newVersion
+			// However, the current structure might call this for oldVersion 1, 2, or 3 to 4.
+			// A more robust onUpgrade handles specific version transitions (e.g. 1->2, 2->3, 3->4)
+			// For now, this will add columns if they are not present from any version < 4.
+			safeAddColumn(db, TABLE_RECORDS, COLUMN_LATITUDE, "REAL DEFAULT 0.0");
+			safeAddColumn(db, TABLE_RECORDS, COLUMN_LONGITUDE, "REAL DEFAULT 0.0");
+			// If TABLE_TRASH also needs these columns, add them here too.
+			// safeAddColumn(db, TABLE_TRASH, COLUMN_LATITUDE, "REAL DEFAULT 0.0");
+			// safeAddColumn(db, TABLE_TRASH, COLUMN_LONGITUDE, "REAL DEFAULT 0.0");
+			db.setTransactionSuccessful();
+			db.endTransaction();
 		}
 	}
 
+	private void safeAddColumn(SQLiteDatabase db, String tableName, String columnName, String columnDefinition) {
+		Cursor cursor = db.rawQuery("PRAGMA table_info(" + tableName + ")", null);
+		if (cursor != null) {
+			try {
+				while (cursor.moveToNext()) {
+					int nameIndex = cursor.getColumnIndex("name");
+					if (nameIndex >= 0 && cursor.getString(nameIndex).equals(columnName)) {
+						// Column already exists
+						return;
+					}
+				}
+				// Column does not exist, add it
+				db.execSQL("ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + columnDefinition);
+			} finally {
+				cursor.close();
+			}
+		}
+	}
 
 	private static final String DATABASE_NAME = "records.db";
-	private static final int DATABASE_VERSION = 3;
+	private static final int DATABASE_VERSION = 4;
 
 	//Tables names
 	static final String TABLE_RECORDS = "records";
@@ -110,6 +141,8 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 	static final String COLUMN_SAMPLE_RATE = "sample_rate";
 	static final String COLUMN_CHANNEL_COUNT = "channel_count";
 	static final String COLUMN_BITRATE = "bitrate";
+	public static final String COLUMN_LATITUDE = "latitude";
+	public static final String COLUMN_LONGITUDE = "longitude";
 
 	//Create records table sql statement
 	private static final String CREATE_RECORDS_TABLE_SCRIPT =
@@ -128,6 +161,8 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 					+ COLUMN_DATA + " BLOB NOT NULL, "
 					+ COLUMN_BOOKMARK + " INTEGER NOT NULL DEFAULT 0, "
 					+ COLUMN_WAVEFORM_PROCESSED + " INTEGER NOT NULL DEFAULT 0, "
+					+ COLUMN_LATITUDE + " REAL DEFAULT 0.0, "
+					+ COLUMN_LONGITUDE + " REAL DEFAULT 0.0, "
 					+ COLUMN_DATA_STR + " BLOB NOT NULL);";
 
 	//Create trash table sql statement

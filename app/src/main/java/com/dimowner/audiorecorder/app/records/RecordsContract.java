@@ -78,6 +78,11 @@ public interface RecordsContract {
 		void showRecordsLostMessage(List<Record> list);
 
 		void cancelMultiSelect();
+
+		void showExportProgress();
+		void hideExportProgress();
+		void showExportSuccess(String path);
+		void showExportError(String message);
 	}
 
 	interface UserActionsListener extends Contract.UserActionsListener<RecordsContract.View> {
@@ -133,6 +138,8 @@ public interface RecordsContract {
 		void disablePlaybackProgressListener();
 
 		void enablePlaybackProgressListener();
+
+		void exportAllData();
 	}
 
 	interface Callback {

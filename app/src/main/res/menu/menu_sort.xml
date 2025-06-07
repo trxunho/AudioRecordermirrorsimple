@@ -32,4 +32,8 @@
 			android:id="@+id/menu_duration_desc"
 			android:icon="@drawable/ic_access_time"
 			android:title="@string/by_duration_desc" />
+
+	<item
+		android:id="@+id/menu_export_all"
+		android:title="Export All Data" />
 </menu>

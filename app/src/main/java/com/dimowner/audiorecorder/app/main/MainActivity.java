@@ -72,6 +72,8 @@ import java.io.File;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import timber.log.Timber;
 
 public class MainActivity extends Activity implements MainContract.View, View.OnClickListener {
@@ -90,6 +92,7 @@ public class MainActivity extends Activity implements MainContract.View, View.On
 	public static final int REQ_CODE_READ_EXTERNAL_STORAGE_DOWNLOAD = 407;
 	public static final int REQ_CODE_POST_NOTIFICATIONS = 408;
 	public static final int REQ_CODE_IMPORT_AUDIO = 11;
+	private static final int REQUEST_CODE_PERMISSIONS_LOCATION = 101;
 
 	private WaveformViewNew waveformView;
 	private RecordingWaveformView recordingWaveformView;
@@ -265,6 +268,20 @@ public class MainActivity extends Activity implements MainContract.View, View.On
 			}
 		}
 		checkNotificationPermission();
+		checkAndRequestLocationPermission();
+	}
+
+	private void checkAndRequestLocationPermission() {
+		if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+			// Permission not granted, request it.
+			ActivityCompat.requestPermissions(this,
+					new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+					REQUEST_CODE_PERMISSIONS_LOCATION);
+		} else {
+			// Permission already granted.
+			// Optionally, log or show a message that permission is available.
+			Timber.d("Location permission already granted.");
+		}
 	}
 
 	@Override
@@ -903,6 +920,14 @@ public class MainActivity extends Activity implements MainContract.View, View.On
 		} else if (requestCode == REQ_CODE_POST_NOTIFICATIONS && grantResults.length > 0
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 			//Post notifications permission is granted do nothing
+		} else if (requestCode == REQUEST_CODE_PERMISSIONS_LOCATION) {
+			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+				// Permission was granted.
+				Toast.makeText(this, R.string.location_permission_granted, Toast.LENGTH_LONG).show();
+			} else {
+				// Permission denied.
+				Toast.makeText(this, R.string.location_permission_denied, Toast.LENGTH_LONG).show();
+			}
 		}
 	}
 }

@@ -213,7 +213,9 @@ public class LocalRepositoryImpl implements LocalRepository {
 					prefs.getSettingBitrate(),
 					false,
 					false,
-					new int[ARApplication.getLongWaveformSampleCount()]);
+					new int[ARApplication.getLongWaveformSampleCount()],
+					0.0, // Default latitude
+					0.0); // Default longitude
 			Record r = insertRecord(record);
 			if (r != null) {
 				return r;

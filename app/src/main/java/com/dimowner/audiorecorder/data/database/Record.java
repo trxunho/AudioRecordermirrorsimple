@@ -43,11 +43,13 @@ public class Record {
 	private final boolean waveformProcessed;
 	private final int[] amps;
 	private final byte[] data;
+	private double latitude;
+	private double longitude;
 	//TODO: Remove not needed data clusters.
 
 	public Record(int id, String name, long duration, long created, long added, long removed, String path,
 					  String format, long size, int sampleRate, int channelCount, int bitrate,
-					  boolean bookmark, boolean waveformProcessed, int[] amps) {
+					  boolean bookmark, boolean waveformProcessed, int[] amps, double latitude, double longitude) {
 		this.id = id;
 		this.name = name;
 		this.duration = duration;
@@ -64,12 +66,14 @@ public class Record {
 		this.waveformProcessed = waveformProcessed;
 		this.amps = amps;
 		this.data = int2byte(amps);
+		this.latitude = latitude;
+		this.longitude = longitude;
 //		this.data = AndroidUtils.int2byte(amps);
 	}
 
 	public Record(int id, String name, long duration, long created, long added, long removed, String path,
 					  String format, long size, int sampleRate, int channelCount, int bitrate,
-					  boolean bookmark, boolean waveformProcessed, byte[] amps) {
+					  boolean bookmark, boolean waveformProcessed, byte[] amps, double latitude, double longitude) {
 		this.id = id;
 		this.name = name;
 		this.duration = duration;
@@ -87,6 +91,22 @@ public class Record {
 		this.amps = byte2int(amps);
 //		this.amps = AndroidUtils.byte2int(amps);
 		this.data = amps;
+		this.latitude = latitude;
+		this.longitude = longitude;
+	}
+
+	// Constructor for records without location data (e.g., older records or when location is not available)
+	public Record(int id, String name, long duration, long created, long added, long removed, String path,
+					  String format, long size, int sampleRate, int channelCount, int bitrate,
+					  boolean bookmark, boolean waveformProcessed, int[] amps) {
+		this(id, name, duration, created, added, removed, path, format, size, sampleRate, channelCount, bitrate, bookmark, waveformProcessed, amps, 0.0, 0.0); //Defaulting to 0.0, 0.0
+	}
+
+	// Constructor for records without location data (e.g., older records or when location is not available)
+	public Record(int id, String name, long duration, long created, long added, long removed, String path,
+					  String format, long size, int sampleRate, int channelCount, int bitrate,
+					  boolean bookmark, boolean waveformProcessed, byte[] amps) {
+		this(id, name, duration, created, added, removed, path, format, size, sampleRate, channelCount, bitrate, bookmark, waveformProcessed, amps, 0.0, 0.0); //Defaulting to 0.0, 0.0
 	}
 
 	public byte[] int2byte(int[] amps) {
@@ -191,6 +211,22 @@ public class Record {
 		this.bookmark = b;
 	}
 
+	public double getLatitude() {
+		return latitude;
+	}
+
+	public void setLatitude(double latitude) {
+		this.latitude = latitude;
+	}
+
+	public double getLongitude() {
+		return longitude;
+	}
+
+	public void setLongitude(double longitude) {
+		this.longitude = longitude;
+	}
+
 //	public static int[] stringToArray(String groups) {
 //		if (groups != null && !groups.isEmpty()) {
 //			String[] grStr = groups.split(DELIMITER);
@@ -241,6 +277,8 @@ public class Record {
 				", waveformProcessed=" + waveformProcessed +
 				", amps=" + Arrays.toString(amps) +
 				", data=" + Arrays.toString(data) +
+				", latitude=" + latitude +
+				", longitude=" + longitude +
 				'}';
 	}
 }

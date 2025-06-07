@@ -56,6 +56,7 @@ public interface LocalRepository {
 	boolean updateTrashRecord(Record record);
 
 	Record insertEmptyFile(String filePath) throws IOException;
+	Record insertEmptyFile(String filePath, double latitude, double longitude) throws IOException;
 
 	boolean deleteRecord(int id);
 

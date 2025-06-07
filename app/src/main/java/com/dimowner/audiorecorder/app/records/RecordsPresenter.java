@@ -36,8 +36,19 @@ import com.dimowner.audiorecorder.util.TimeUtils;
 
 import java.io.File;
 import java.util.List;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
+import io.reactivex.disposables.CompositeDisposable;
 import timber.log.Timber;
 
 public class RecordsPresenter implements RecordsContract.UserActionsListener {
@@ -56,6 +67,7 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 	private Record activeRecord;
 	private boolean showBookmarks = false;
 	private boolean listenPlaybackProgress = true;
+	private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
 	public RecordsPresenter(final LocalRepository localRepository, FileRepository fileRepository,
 									BackgroundQueue loadingTasks, BackgroundQueue recordingsTasks,
@@ -180,6 +192,7 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 		if (view != null) {
 			unbindView();
 		}
+		compositeDisposable.dispose();
 	}
 
 	@Override
@@ -641,5 +654,146 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 	@Override
 	public void enablePlaybackProgressListener() {
 		listenPlaybackProgress = true;
+	}
+
+	@Override
+	public void exportAllData() {
+		if (view == null) return;
+
+		view.showExportProgress();
+		loadingTasks.postRunnable(() -> {
+			List<Record> records = localRepository.getAllRecords();
+			if (records.isEmpty()) {
+				AndroidUtils.runOnUIThread(() -> {
+					if (view != null) {
+						view.hideExportProgress();
+						view.showError(R.string.no_records_to_export);
+					}
+				});
+				return;
+			}
+
+			JSONObject geoJson = new JSONObject();
+			JSONArray features = new JSONArray();
+			File appDir = FileUtil.getAppDir();
+			if (appDir == null) {
+				Timber.e("Failed to get app directory for export.");
+				AndroidUtils.runOnUIThread(() -> {
+					if (view != null) {
+						view.hideExportProgress();
+						view.showExportError("Failed to access application storage for export.");
+					}
+				});
+				return;
+			}
+			try {
+				geoJson.put("type", "FeatureCollection");
+				geoJson.put("features", features);
+
+				for (Record record : records) {
+					// Assuming 0.0, 0.0 means no location data or invalid
+					if (record.getLatitude() != 0.0 || record.getLongitude() != 0.0) {
+						JSONObject feature = new JSONObject();
+						feature.put("type", "Feature");
+
+						JSONObject geometry = new JSONObject();
+						geometry.put("type", "Point");
+						JSONArray coordinates = new JSONArray();
+						coordinates.put(record.getLongitude());
+						coordinates.put(record.getLatitude());
+						geometry.put("coordinates", coordinates);
+						feature.put("geometry", geometry);
+
+						JSONObject properties = new JSONObject();
+						properties.put("name", record.getNameWithExtension());
+						properties.put("path", record.getNameWithExtension()); // Path within ZIP
+						properties.put("created", record.getCreated());
+						properties.put("duration", record.getDuration());
+						properties.put("format", record.getFormat());
+						properties.put("size", record.getSize());
+						properties.put("sampleRate", record.getSampleRate());
+						properties.put("channelCount", record.getChannelCount());
+						properties.put("bitrate", record.getBitrate());
+						feature.put("properties", properties);
+
+						features.put(feature);
+					}
+				}
+			} catch (JSONException e) {
+				Timber.e(e, "Error creating GeoJSON");
+				AndroidUtils.runOnUIThread(() -> {
+					if (view != null) {
+						view.hideExportProgress();
+						view.showExportError("Error creating location data file.");
+					}
+				});
+				return;
+			}
+
+			File exportDir = new File(appDir, "export");
+			if (!exportDir.exists()) {
+				if (!exportDir.mkdirs()) {
+					Timber.e("Failed to create export directory");
+					AndroidUtils.runOnUIThread(() -> {
+						if (view != null) {
+							view.hideExportProgress();
+							view.showExportError("Failed to create export directory.");
+						}
+					});
+					return;
+				}
+			}
+
+			String zipFileName = "recordings_export_" + System.currentTimeMillis() + ".zip";
+			File zipFile = new File(exportDir, zipFileName);
+
+			try (ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipFile)))) {
+				// Add GeoJSON file
+				if (features.length() > 0) {
+					ZipEntry geoJsonEntry = new ZipEntry("locations.geojson");
+					zos.putNextEntry(geoJsonEntry);
+					zos.write(geoJson.toString(2).getBytes()); // Using 2 for indentation for readability
+					zos.closeEntry();
+				}
+
+				// Add audio files
+				byte[] buffer = new byte[8192];
+				int bytesRead;
+				for (Record record : records) {
+					File audioFile = new File(record.getPath());
+					if (audioFile.exists()) {
+						try (FileInputStream fis = new FileInputStream(audioFile);
+							 BufferedInputStream bis = new BufferedInputStream(fis)) {
+							ZipEntry audioEntry = new ZipEntry(audioFile.getName()); // Store with original name in root of zip
+							zos.putNextEntry(audioEntry);
+							while ((bytesRead = bis.read(buffer)) != -1) {
+								zos.write(buffer, 0, bytesRead);
+							}
+							zos.closeEntry();
+						} catch (IOException e) {
+							Timber.e(e, "Error adding audio file to zip: %s", record.getPath());
+							// Optionally, continue zipping other files or report specific file error
+						}
+					} else {
+						Timber.w("Audio file not found, skipping: %s", record.getPath());
+					}
+				}
+				zos.flush();
+				AndroidUtils.runOnUIThread(() -> {
+					if (view != null) {
+						view.hideExportProgress();
+						view.showExportSuccess(zipFile.getAbsolutePath());
+					}
+				});
+			} catch (IOException | JSONException e) {
+				Timber.e(e, "Error creating ZIP file");
+				AndroidUtils.runOnUIThread(() -> {
+					if (view != null) {
+						view.hideExportProgress();
+						view.showExportError("Error creating export ZIP file.");
+					}
+				});
+			}
+		});
 	}
 }

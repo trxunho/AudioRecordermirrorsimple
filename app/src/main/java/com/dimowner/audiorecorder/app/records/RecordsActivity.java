@@ -602,6 +602,8 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 				presenter.updateRecordsOrder(AppConstants.SORT_DURATION);
 			} else if (id == R.id.menu_duration_desc) {
 				presenter.updateRecordsOrder(AppConstants.SORT_DURATION_DESC);
+			} else if (id == R.id.menu_export_all) {
+				presenter.exportAllData();
 			}
 			return false;
 		});
@@ -896,6 +898,31 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 	@Override
 	public void showMessage(int resId) {
 		Toast.makeText(getApplicationContext(), resId, Toast.LENGTH_LONG).show();
+	}
+
+	@Override
+	public void showExportProgress() {
+		//TODO: Show a more prominent progress indicator, e.g., a ProgressDialog or a persistent notification
+		progressBar.setVisibility(View.VISIBLE); // Using existing progress bar for now
+		Toast.makeText(getApplicationContext(), R.string.exporting_data, Toast.LENGTH_SHORT).show();
+	}
+
+	@Override
+	public void hideExportProgress() {
+		progressBar.setVisibility(View.GONE);
+	}
+
+	@Override
+	public void showExportSuccess(String path) {
+		hideExportProgress(); //Ensure progress is hidden
+		//TODO: Provide an "Open" action with an Intent
+		Toast.makeText(getApplicationContext(), getString(R.string.export_success, path), Toast.LENGTH_LONG).show();
+	}
+
+	@Override
+	public void showExportError(String message) {
+		hideExportProgress(); //Ensure progress is hidden
+		Toast.makeText(getApplicationContext(), getString(R.string.export_failed_message, message), Toast.LENGTH_LONG).show();
 	}
 
 	public void setRecordName(final long recordId, final String name, final String extension) {

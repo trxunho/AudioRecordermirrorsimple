@@ -63,6 +63,16 @@ import java.io.IOException;
 
 import timber.log.Timber;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import androidx.core.app.ActivityCompat;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.CurrentLocationRequest;
+import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.CancellationTokenSource;
+
 public class RecordingService extends Service {
 
 	private final static String CHANNEL_NAME = "Default";
@@ -96,6 +106,7 @@ public class RecordingService extends Service {
 	private ColorMap colorMap;
 	private boolean started = false;
 	private FileRepository fileRepository;
+	private FusedLocationProviderClient fusedLocationClient;
 
 	public RecordingService() {
 	}
@@ -118,6 +129,7 @@ public class RecordingService extends Service {
 
 		colorMap = ARApplication.getInjector().provideColorMap(getApplicationContext());
 		fileRepository = ARApplication.getInjector().provideFileRepository(getApplicationContext());
+		fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
 		appRecorderCallback = new AppRecorderCallback() {
 			boolean checkHasSpace = true;
@@ -418,33 +430,38 @@ public class RecordingService extends Service {
 		appRecorder.setRecorder(recorder);
 		try {
 			if (fileRepository.hasAvailableSpace(getApplicationContext())) {
-//				if (appRecorder.isPaused()) {
-//					appRecorder.resumeRecording();
-//				} else
 				if (!appRecorder.isRecording()) {
 					if (audioPlayer.isPlaying() || audioPlayer.isPaused()) {
 						audioPlayer.stop();
 					}
-					recordingsTasks.postRunnable(() -> {
-						try {
-							Record record = localRepository.insertEmptyFile(path);
-							prefs.setActiveRecord(record.getId());
-							recordDataSource.setRecordingRecord(record);
-							AndroidUtils.runOnUIThread(() -> appRecorder.startRecording(
-									path,
-									prefs.getSettingChannelCount(),
-									prefs.getSettingSampleRate(),
-									prefs.getSettingBitrate()
-							));
-						} catch (IOException | OutOfMemoryError | IllegalStateException | NullPointerException e) {
-							Timber.e(e);
-							showError(R.string.error_failed_to_start_recording);
-						}
-					});
+					// Attempt to get location
+					if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+							ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+						CurrentLocationRequest currentLocationRequest = new CurrentLocationRequest.Builder()
+								.setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+								.setDurationMillis(5000) // Timeout for the request
+								.build();
+						CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+						fusedLocationClient.getCurrentLocation(currentLocationRequest, cancellationTokenSource.getToken())
+								.addOnSuccessListener(location -> {
+									if (location != null) {
+										Timber.d("Location obtained: %s, %s", location.getLatitude(), location.getLongitude());
+										proceedWithRecording(path, location.getLatitude(), location.getLongitude());
+									} else {
+										Timber.d("Location is null, using default values.");
+										proceedWithRecording(path, 0.0, 0.0);
+									}
+								})
+								.addOnFailureListener(e -> {
+									Timber.e(e, "Failed to get location, using default values.");
+									proceedWithRecording(path, 0.0, 0.0);
+								});
+					} else {
+						Timber.d("Location permissions not granted, using default values.");
+						proceedWithRecording(path, 0.0, 0.0);
+					}
 				}
-//				else {
-//					appRecorder.pauseRecording();
-//				}
 			} else {
 				showError(R.string.error_no_available_space);
 				stopForegroundService();
@@ -453,6 +470,27 @@ public class RecordingService extends Service {
 			showError(R.string.error_failed_access_to_storage);
 			stopForegroundService();
 		}
+	}
+
+	private void proceedWithRecording(String path, double latitude, double longitude) {
+		recordingsTasks.postRunnable(() -> {
+			try {
+				Record record = localRepository.insertEmptyFile(path, latitude, longitude);
+				prefs.setActiveRecord(record.getId());
+				recordDataSource.setRecordingRecord(record);
+				AndroidUtils.runOnUIThread(() -> appRecorder.startRecording(
+						path,
+						prefs.getSettingChannelCount(),
+						prefs.getSettingSampleRate(),
+						prefs.getSettingBitrate()
+				));
+			} catch (IOException | OutOfMemoryError | IllegalStateException | NullPointerException e) {
+				Timber.e(e);
+				showError(R.string.error_failed_to_start_recording);
+				//Consider stopping foreground service if critical error during record setup
+				// stopForegroundService();
+			}
+		});
 	}
 
 	public void showError(int resId) {
