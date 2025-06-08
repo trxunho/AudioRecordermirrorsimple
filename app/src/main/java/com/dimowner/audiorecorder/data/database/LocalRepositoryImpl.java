@@ -214,8 +214,8 @@ public class LocalRepositoryImpl implements LocalRepository {
 					false,
 					false,
 					new int[ARApplication.getLongWaveformSampleCount()],
-					0.0, // Default latitude
-					0.0); // Default longitude
+					latitude, // Use passed latitude
+					longitude); // Use passed longitude
 			Record r = insertRecord(record);
 			if (r != null) {
 				return r;
