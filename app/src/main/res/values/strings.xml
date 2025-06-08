@@ -289,4 +289,11 @@
 	</string-array>
 
 	<string name="app_widget_description">Start recording widget</string>
+
+	<string name="location_permission_granted">Location permission granted. Recordings will include location.</string>
+	<string name="location_permission_denied">Location permission denied. Recordings will not include location.</string>
+	<string name="exporting_data">Exporting data…</string>
+	<string name="export_success">Data exported successfully to: %s</string>
+	<string name="export_failed_message">Export failed: %s</string>
+	<string name="no_records_to_export">No records available to export.</string>
 </resources>

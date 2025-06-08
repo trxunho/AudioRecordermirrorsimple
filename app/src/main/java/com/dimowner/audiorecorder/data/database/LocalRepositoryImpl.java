@@ -195,9 +195,9 @@ public class LocalRepositoryImpl implements LocalRepository {
 	}
 
 	@Override
-	public Record insertEmptyFile(String path) throws IOException {
-		if (path != null && !path.isEmpty()) {
-			File file = new File(path);
+	public Record insertEmptyFile(String filePath, double latitude, double longitude) throws IOException {
+		if (filePath != null && !filePath.isEmpty()) {
+			File file = new File(filePath);
 			Record record = new Record(
 					Record.NO_ID,
 					FileUtil.removeFileExtension(file.getName()),
@@ -205,7 +205,7 @@ public class LocalRepositoryImpl implements LocalRepository {
 					file.lastModified(),
 					new Date().getTime(),
 					Long.MAX_VALUE,
-					path,
+					filePath,
 					prefs.getSettingRecordingFormat(),
 					0,
 					prefs.getSettingSampleRate(),
@@ -224,7 +224,7 @@ public class LocalRepositoryImpl implements LocalRepository {
 			}
 		} else {
 			Timber.e("Unable to read sound file by specified path!");
-			throw new IOException("Unable to read sound file by specified path!");
+			throw new IOException("Unable to read sound file by specified filePath!");
 		}
 		return null;
 	}
