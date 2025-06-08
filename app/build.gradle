@@ -109,6 +109,9 @@ dependencies {
 	implementation "com.jakewharton.timber:timber:$timber"
 	implementation "androidx.recyclerview:recyclerview:$androidX"
 
+	// Location Services
+	implementation 'com.google.android.gms:play-services-location:21.0.1'
+
 	testImplementation("junit:junit:4.13.2")
 	testImplementation("io.mockk:mockk:1.13.10")
 
