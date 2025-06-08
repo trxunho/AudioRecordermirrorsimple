@@ -79,8 +79,8 @@
 		<item quantity="one">%d kayıt taşındı</item>
 		<item quantity="other">%d kayıt taşındı</item>
 	</plurals>
-	<string name="downloading_success_and_fail_count">%d kayıt kopyalandı ve %d kayıt kopyalanamadı</string>
-	<string name="moving_records_success_and_fail_count">%d kayıt taşındı ve %d kayıt taşınamadı</string>
+	<string name="downloading_success_and_fail_count" formatted="false">%d kayıt kopyalandı ve %d kayıt kopyalanamadı</string>
+	<string name="moving_records_success_and_fail_count" formatted="false">%d kayıt taşındı ve %d kayıt taşınamadı</string>
 	<string name="downloading_success">%s \'Downloads\' dizinine kaydedildi</string>
 	<string name="move_record_success">%s uygulama dizinine taşındı</string>
 	<plurals name="downloading_failed_count">

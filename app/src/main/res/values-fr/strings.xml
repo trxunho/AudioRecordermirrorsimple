@@ -78,8 +78,8 @@
 		<item quantity="one">Les %d l\'enregistrement a bien été déplacé</item>
 		<item quantity="many">Les %d enregistrements ont bien été déplacé</item>
 	</plurals>
-	<string name="downloading_success_and_fail_count">%d enregistrements ont bien été copié et %d ont échoué</string>
-	<string name="moving_records_success_and_fail_count">%d enregistrements ont bien été déplacé et %d ont échoué</string>
+	<string name="downloading_success_and_fail_count" formatted="false">%d enregistrements ont bien été copié et %d ont échoué</string>
+	<string name="moving_records_success_and_fail_count" formatted="false">%d enregistrements ont bien été déplacé et %d ont échoué</string>
 	<string name="downloading_success">%s copiés dans le dossier \'Downloads\'</string>
 	<string name="move_record_success">%s déplacés dans le dossier \'Downloads\'</string>
 	<plurals name="downloading_failed_count">
