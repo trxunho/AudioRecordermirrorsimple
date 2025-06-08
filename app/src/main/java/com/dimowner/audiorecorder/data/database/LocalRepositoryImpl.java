@@ -195,6 +195,12 @@ public class LocalRepositoryImpl implements LocalRepository {
 	}
 
 	@Override
+	public Record insertEmptyFile(String filePath) throws IOException {
+		// Call the overloaded method with default latitude and longitude
+		return insertEmptyFile(filePath, 0.0, 0.0);
+	}
+
+	@Override
 	public Record insertEmptyFile(String filePath, double latitude, double longitude) throws IOException {
 		if (filePath != null && !filePath.isEmpty()) {
 			File file = new File(filePath);
