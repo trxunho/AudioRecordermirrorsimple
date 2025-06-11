@@ -676,14 +676,21 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 			JSONObject geoJson = new JSONObject();
 			JSONArray features = new JSONArray();
 			File appDir = FileUtil.getAppDir();
+			Timber.d("FileUtil.getAppDir() returned: %s", appDir != null ? appDir.getAbsolutePath() : "null");
 			if (appDir == null) {
 				Timber.e("Failed to get app directory for export.");
 				AndroidUtils.runOnUIThread(() -> {
 					if (view != null) {
 						view.hideExportProgress();
-						view.showExportError("Failed to access application storage for export.");
+						// Assuming R.string.error_failed_to_create_export_dir is not yet available, using hardcoded.
+						view.showExportError("Failed to create export directory.");
 					}
 				});
+				// Clear compositeDisposable and hide progress already handled by the original logic if view is null or error occurs.
+				// No need to explicitly call compositeDisposable.clear() or view.hideExportProgress() here again if it's covered later.
+				// However, the original code structure for appDir==null check did not have these, so adding defensively.
+				if (compositeDisposable != null) compositeDisposable.clear();
+				if (view != null) view.hideExportProgress();
 				return;
 			}
 			try {
@@ -731,17 +738,37 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 			}
 
 			File exportDir = new File(appDir, "export");
-			if (!exportDir.exists()) {
-				if (!exportDir.mkdirs()) {
-					Timber.e("Failed to create export directory");
-					AndroidUtils.runOnUIThread(() -> {
-						if (view != null) {
-							view.hideExportProgress();
-							view.showExportError("Failed to create export directory.");
-						}
-					});
-					return;
+			Timber.d("Attempting to create/access export directory: %s", exportDir.getAbsolutePath());
+			boolean dirOkay = false;
+			if (exportDir.exists() && exportDir.isDirectory()) {
+				Timber.d("Export directory already exists and is a directory.");
+				dirOkay = true;
+			} else if (exportDir.exists() && !exportDir.isDirectory()) {
+				Timber.w("Export directory path exists but is a file. Attempting to delete and recreate as directory.");
+				if (exportDir.delete()) {
+					dirOkay = exportDir.mkdirs();
+					Timber.d("Deleted file and attempted mkdirs for export directory. Result: %b", dirOkay);
+				} else {
+					Timber.e("Could not delete file at export directory path: %s", exportDir.getAbsolutePath());
+					dirOkay = false;
 				}
+			} else { // Directory does not exist
+				Timber.d("Export directory does not exist. Attempting mkdirs.");
+				dirOkay = exportDir.mkdirs();
+				Timber.d("Result of exportDir.mkdirs(): %b", dirOkay);
+			}
+
+			if (!dirOkay) {
+				Timber.e("Failed to create or access export directory: %s", exportDir.getAbsolutePath());
+				AndroidUtils.runOnUIThread(() -> {
+					if (view != null) {
+						// Assuming R.string.error_failed_to_create_export_dir is not yet available, using hardcoded.
+						view.showExportError("Failed to create export directory.");
+					}
+				});
+				if (compositeDisposable != null) compositeDisposable.clear();
+				if (view != null) view.hideExportProgress();
+				return;
 			}
 
 			String zipFileName = "recordings_export_" + System.currentTimeMillis() + ".zip";
