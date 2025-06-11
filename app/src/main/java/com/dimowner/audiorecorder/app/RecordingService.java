@@ -427,6 +427,10 @@ public class RecordingService extends Service {
 	}
 
 	private void startRecording(String path) {
+		boolean hasFineLocationPerm = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+		boolean hasCoarseLocationPerm = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+		Timber.d("RecordingService: Checking location permissions. Fine: %b, Coarse: %b", hasFineLocationPerm, hasCoarseLocationPerm);
+
 		appRecorder.setRecorder(recorder);
 		try {
 			if (fileRepository.hasAvailableSpace(getApplicationContext())) {

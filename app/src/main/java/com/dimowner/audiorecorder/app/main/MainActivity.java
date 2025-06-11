@@ -921,6 +921,17 @@ public class MainActivity extends Activity implements MainContract.View, View.On
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 			//Post notifications permission is granted do nothing
 		} else if (requestCode == REQUEST_CODE_PERMISSIONS_LOCATION) {
+			Timber.d("onRequestPermissionsResult for LOCATION: requestCode %d", requestCode);
+			if (permissions != null && permissions.length > 0) {
+				Timber.d("Permission requested: %s", permissions[0]);
+			} else {
+				Timber.d("Permissions array is null or empty.");
+			}
+			if (grantResults != null && grantResults.length > 0) {
+				Timber.d("GrantResult: %d (GRANTED is %d, DENIED is %d)", grantResults[0], PackageManager.PERMISSION_GRANTED, PackageManager.PERMISSION_DENIED);
+			} else {
+				Timber.d("GrantResults array is null or empty.");
+			}
 			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 				// Permission was granted.
 				Toast.makeText(this, R.string.location_permission_granted, Toast.LENGTH_LONG).show();
