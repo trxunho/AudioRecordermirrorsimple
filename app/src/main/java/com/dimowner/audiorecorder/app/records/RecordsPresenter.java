@@ -63,6 +63,7 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 	private final FileRepository fileRepository;
 	private final LocalRepository localRepository;
 	private final Prefs prefs;
+	private final android.content.Context applicationContext; // Added for getExternalFilesDir
 
 	private Record activeRecord;
 	private boolean showBookmarks = false;
@@ -71,9 +72,10 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 
 	public RecordsPresenter(final LocalRepository localRepository, FileRepository fileRepository,
 									BackgroundQueue loadingTasks, BackgroundQueue recordingsTasks,
-									PlayerContractNew.Player player, AppRecorder appRecorder, Prefs prefs) {
+									PlayerContractNew.Player player, AppRecorder appRecorder, Prefs prefs, android.content.Context context) {
 		this.localRepository = localRepository;
 		this.fileRepository = fileRepository;
+		this.applicationContext = context; // Store context
 		this.loadingTasks = loadingTasks;
 		this.recordingsTasks = recordingsTasks;
 		this.audioPlayer = player;
@@ -660,7 +662,11 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 	public void exportAllData() {
 		if (view == null) return;
 
-		view.showExportProgress();
+		AndroidUtils.runOnUIThread(() -> {
+			if (view != null) {
+				view.showExportProgress();
+			}
+		});
 		loadingTasks.postRunnable(() -> {
 			List<Record> records = localRepository.getAllRecords();
 			if (records.isEmpty()) {
@@ -675,22 +681,23 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 
 			JSONObject geoJson = new JSONObject();
 			JSONArray features = new JSONArray();
-			File appDir = FileUtil.getAppDir();
-			Timber.d("FileUtil.getAppDir() returned: %s", appDir != null ? appDir.getAbsolutePath() : "null");
-			if (appDir == null) {
-				Timber.e("Failed to get app directory for export.");
+			File baseDir = applicationContext.getExternalFilesDir(null);
+			Timber.d("Base directory for export: %s", baseDir != null ? baseDir.getAbsolutePath() : "null");
+			if (baseDir == null) {
+				Timber.e("Failed to get base directory for export (getExternalFilesDir returned null).");
 				AndroidUtils.runOnUIThread(() -> {
 					if (view != null) {
 						view.hideExportProgress();
-						// Assuming R.string.error_failed_to_create_export_dir is not yet available, using hardcoded.
-						view.showExportError("Failed to create export directory.");
+						view.showExportError("Failed to create export directory."); // Using generic error
 					}
 				});
 				// Clear compositeDisposable and hide progress already handled by the original logic if view is null or error occurs.
 				// No need to explicitly call compositeDisposable.clear() or view.hideExportProgress() here again if it's covered later.
 				// However, the original code structure for appDir==null check did not have these, so adding defensively.
 				if (compositeDisposable != null) compositeDisposable.clear();
-				if (view != null) view.hideExportProgress();
+				AndroidUtils.runOnUIThread(() -> { // Ensure hideExportProgress is on UI thread if view was not null initially
+					if (view != null) view.hideExportProgress();
+				});
 				return;
 			}
 			try {
@@ -737,7 +744,7 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 				return;
 			}
 
-			File exportDir = new File(appDir, "export");
+			File exportDir = new File(baseDir, "export");
 			Timber.d("Attempting to create/access export directory: %s", exportDir.getAbsolutePath());
 			boolean dirOkay = false;
 			if (exportDir.exists() && exportDir.isDirectory()) {
@@ -767,7 +774,9 @@ public class RecordsPresenter implements RecordsContract.UserActionsListener {
 					}
 				});
 				if (compositeDisposable != null) compositeDisposable.clear();
-				if (view != null) view.hideExportProgress();
+				AndroidUtils.runOnUIThread(() -> { // Ensure hideExportProgress is on UI thread
+					if (view != null) view.hideExportProgress();
+				});
 				return;
 			}
 

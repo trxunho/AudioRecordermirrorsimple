@@ -884,40 +884,41 @@ public class MainActivity extends Activity implements MainContract.View, View.On
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-		if (requestCode == REQ_CODE_REC_AUDIO_AND_WRITE_EXTERNAL && grantResults.length > 0
+		super.onRequestPermissionsResult(requestCode, permissions, grantResults); // It's good practice to call super
+		if (requestCode == REQ_CODE_REC_AUDIO_AND_WRITE_EXTERNAL && grantResults != null && grantResults.length >= 3
 					&& grantResults[0] == PackageManager.PERMISSION_GRANTED
 					&& grantResults[1] == PackageManager.PERMISSION_GRANTED
 					&& grantResults[2] == PackageManager.PERMISSION_GRANTED) {
 			startRecordingService();
-		} else if (requestCode == REQ_CODE_RECORD_AUDIO && grantResults.length > 0
+		} else if (requestCode == REQ_CODE_RECORD_AUDIO && grantResults != null && grantResults.length > 0
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 			if (checkStoragePermission2()) {
 				startRecordingService();
 			}
-		} else if (requestCode == REQ_CODE_WRITE_EXTERNAL_STORAGE && grantResults.length > 0
+		} else if (requestCode == REQ_CODE_WRITE_EXTERNAL_STORAGE && grantResults != null && grantResults.length >= 2
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED
 				&& grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 			if (checkRecordPermission2()) {
 				startRecordingService();
 			}
-		} else if (requestCode == REQ_CODE_READ_EXTERNAL_STORAGE_IMPORT && grantResults.length > 0
+		} else if (requestCode == REQ_CODE_READ_EXTERNAL_STORAGE_IMPORT && grantResults != null && grantResults.length >= 2
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED
 				&& grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 			startFileSelector();
-		} else if (requestCode == REQ_CODE_READ_EXTERNAL_STORAGE_DOWNLOAD && grantResults.length > 0
+		} else if (requestCode == REQ_CODE_READ_EXTERNAL_STORAGE_DOWNLOAD && grantResults != null && grantResults.length >= 2
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED
 				&& grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 			presenter.onSaveAsClick();
-		} else if (requestCode == REQ_CODE_READ_EXTERNAL_STORAGE_PLAYBACK && grantResults.length > 0
+		} else if (requestCode == REQ_CODE_READ_EXTERNAL_STORAGE_PLAYBACK && grantResults != null && grantResults.length >= 2
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED
 				&& grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 			presenter.startPlayback();
-		} else if (requestCode == REQ_CODE_WRITE_EXTERNAL_STORAGE && grantResults.length > 0
+		} else if (requestCode == REQ_CODE_WRITE_EXTERNAL_STORAGE && grantResults != null && grantResults.length >= 2 // Check length before accessing elements
 				&& (grantResults[0] == PackageManager.PERMISSION_DENIED
 				|| grantResults[1] == PackageManager.PERMISSION_DENIED)) {
 			presenter.setStoragePrivate(getApplicationContext());
 			startRecordingService();
-		} else if (requestCode == REQ_CODE_POST_NOTIFICATIONS && grantResults.length > 0
+		} else if (requestCode == REQ_CODE_POST_NOTIFICATIONS && grantResults != null && grantResults.length > 0
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 			//Post notifications permission is granted do nothing
 		} else if (requestCode == REQUEST_CODE_PERMISSIONS_LOCATION) {

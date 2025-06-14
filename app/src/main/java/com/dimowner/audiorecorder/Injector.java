@@ -192,9 +192,16 @@ public class Injector {
 
 	public RecordsContract.UserActionsListener provideRecordsPresenter(Context context) {
 		if (recordsPresenter == null) {
-			recordsPresenter = new RecordsPresenter(provideLocalRepository(context), provideFileRepository(context),
-					provideLoadingTasksQueue(), provideRecordingTasksQueue(),
-					provideAudioPlayer(), provideAppRecorder(context), providePrefs(context));
+			recordsPresenter = new RecordsPresenter(
+					provideLocalRepository(context),
+					provideFileRepository(context),
+					provideLoadingTasksQueue(),
+					provideRecordingTasksQueue(),
+					provideAudioPlayer(),
+					provideAppRecorder(context),
+					providePrefs(context),
+					context // Pass the application context
+			);
 		}
 		return recordsPresenter;
 	}
